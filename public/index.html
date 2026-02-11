@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elevator Bet Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 开始界面 -->
+    <div id="start-screen" class="screen active">
+        <h1>Make Your BET!</h1>
+        <p class="subtitle">Which elevator will arrive first?</p>
+        <button class="btn-large" onclick="startGame()">Start!</button>
+    </div>
+
+    <!-- 选择电梯界面 -->
+    <div id="bet-screen" class="screen">
+        <h2>Make Your BET!</h2>
+        <div class="elevator-buttons">
+            <button class="btn-elevator" onclick="selectElevator(1)">E1</button>
+            <button class="btn-elevator" onclick="selectElevator(2)">E2</button>
+            <button class="btn-elevator" onclick="selectElevator(3)">E3</button>
+            <button class="btn-elevator" onclick="selectElevator(4)">E4</button>
+        </div>
+    </div>
+
+    <!-- 确认界面 -->
+    <div id="confirm-screen" class="screen">
+        <h2>You chose Elevator <span id="user-choice"></span></h2>
+        <div class="confirm-buttons">
+            <button class="btn-confirm" onclick="confirmBet('sure')">Are you sure?</button>
+            <button class="btn-confirm" onclick="confirmBet('maybe')">Maybe?</button>
+            <button class="btn-confirm" onclick="confirmBet('really')">Really?</button>
+            <button class="btn-confirm" onclick="confirmBet('forsure')">For sure?</button>
+        </div>
+    </div>
+
+    <!-- 结果界面 -->
+    <div id="result-screen" class="screen">
+        <h1 id="result-message"></h1>
+        <p id="result-detail"></p>
+        <p class="thanks">Thanks for betting!</p>
+        <div id="qr-code"></div>
+    </div>
+
+    <!-- 统计显示 -->
+    <div id="stats" class="stats-corner">
+        <p>Total Bets: <span id="total-bets">0</span></p>
+        <p>Win Rate: <span id="win-rate">0</span>%</p>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- QR Code Library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    
+    <!-- 主脚本 -->
+    <script src="app.js"></script>
+</body>
+</html>
+
