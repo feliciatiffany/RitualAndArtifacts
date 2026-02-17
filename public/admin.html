@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elevator Controller Terminal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Bangers', cursive;
+            background: #1a1a2e;
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+            padding-bottom: 80px;
+        }
+        .header { text-align: center; margin-bottom: 25px; }
+        .header h1 { font-size: 28px; color: #f4a825; letter-spacing: 3px; text-shadow: 2px 2px 0 #000; }
+        .header p { font-size: 16px; color: #888; letter-spacing: 1px; margin-top: 5px; }
+        .status-card { background: #16213e; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 2px solid #0f3460; }
+        .status-label { font-size: 14px; color: #888; letter-spacing: 2px; margin-bottom: 8px; }
+        .status-value { font-size: 22px; letter-spacing: 1px; }
+        .status-idle { color: #888; }
+        .status-betting { color: #f4a825; animation: pulse 1s infinite; }
+        .status-resolved { color: #2a9d8f; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .current-bets { background: #16213e; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 2px solid #0f3460; }
+        .bets-count { font-size: 16px; color: #f4a825; margin-bottom: 10px; }
+        .bet-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #0f3460; }
+        .bet-item:last-child { border-bottom: none; }
+        .bet-player { font-size: 18px; color: #fff; }
+        .bet-choice { font-size: 16px; padding: 4px 12px; border-radius: 6px; color: #fff; }
+        .bet-choice-1 { background: #2a2a7e; }
+        .bet-choice-2 { background: #e63946; }
+        .bet-choice-3 { background: #f4c430; color: #333; }
+        .bet-choice-4 { background: #2a9d8f; }
+        .section-title { font-size: 18px; color: #f4a825; letter-spacing: 2px; margin-bottom: 12px; text-shadow: 1px 1px 0 #000; }
+
+        /* Mode toggle */
+        .mode-toggle { display: flex; gap: 0; margin-bottom: 20px; border-radius: 10px; overflow: hidden; border: 2px solid #0f3460; }
+        .mode-btn {
+            flex: 1; padding: 12px; text-align: center; font-family: 'Bangers', cursive;
+            font-size: 16px; letter-spacing: 2px; cursor: pointer; border: none;
+            background: #16213e; color: #888; transition: all 0.2s;
+        }
+        .mode-btn.active { background: #f4a825; color: #1a1a2e; }
+
+        /* Elevator grid */
+        .elevator-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .elevator-btn {
+            border: none; border-radius: 12px; padding: 30px 15px;
+            font-family: 'Bangers', cursive; font-size: 22px; letter-spacing: 2px;
+            cursor: pointer; color: #fff; transition: transform 0.2s, box-shadow 0.2s;
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+        }
+        .elevator-btn:active { transform: scale(0.95); }
+        .elevator-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .elevator-btn-1 { background: #2a2a7e; box-shadow: 0 4px 15px rgba(42,42,126,0.4); }
+        .elevator-btn-2 { background: #e63946; box-shadow: 0 4px 15px rgba(230,57,70,0.4); }
+        .elevator-btn-3 { background: #f4c430; color: #333; text-shadow: none; box-shadow: 0 4px 15px rgba(244,196,48,0.4); }
+        .elevator-btn-4 { background: #2a9d8f; box-shadow: 0 4px 15px rgba(42,157,143,0.4); }
+
+        /* Sensor panel */
+        .sensor-panel { display: none; }
+        .sensor-panel.active { display: block; }
+        .sensor-card {
+            background: #16213e; border-radius: 12px; padding: 15px;
+            margin-bottom: 12px; border: 2px solid #0f3460;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .sensor-color-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
+        .sensor-color-1 { background: #2a2a7e; box-shadow: 0 0 6px rgba(42,42,126,0.6); }
+        .sensor-color-2 { background: #e63946; box-shadow: 0 0 6px rgba(230,57,70,0.6); }
+        .sensor-color-3 { background: #f4c430; box-shadow: 0 0 6px rgba(244,196,48,0.6); }
+        .sensor-color-4 { background: #2a9d8f; box-shadow: 0 0 6px rgba(42,157,143,0.6); }
+        .sensor-info { flex: 1; }
+        .sensor-name { font-size: 16px; color: #fff; letter-spacing: 1px; }
+        .sensor-device { font-size: 12px; color: #555; letter-spacing: 1px; margin-top: 2px; }
+        .sensor-brightness-bar { height: 8px; background: #0f3460; border-radius: 4px; margin-top: 6px; position: relative; overflow: hidden; }
+        .sensor-brightness-fill { height: 100%; border-radius: 4px; transition: width 0.3s; width: 0%; }
+        .sensor-brightness-fill-1 { background: #2a2a7e; }
+        .sensor-brightness-fill-2 { background: #e63946; }
+        .sensor-brightness-fill-3 { background: #f4c430; }
+        .sensor-brightness-fill-4 { background: #2a9d8f; }
+        .sensor-value { font-size: 14px; color: #888; text-align: right; min-width: 45px; }
+        .sensor-connect-btn {
+            padding: 6px 14px; border-radius: 6px; border: none;
+            font-family: 'Bangers', cursive; font-size: 13px; letter-spacing: 1px;
+            cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+        }
+        .sensor-connect-btn.disconnected { background: #0f3460; color: #f4a825; }
+        .sensor-connect-btn.connected { background: #2a9d8f; color: #fff; }
+        .sensor-connect-btn:hover { transform: scale(1.05); }
+
+        /* Threshold config */
+        .threshold-card {
+            background: #16213e; border-radius: 12px; padding: 15px;
+            margin-bottom: 15px; border: 2px solid #0f3460;
+        }
+        .threshold-row { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+        .threshold-slider { flex: 1; accent-color: #f4a825; }
+        .threshold-val { font-size: 18px; color: #f4a825; min-width: 50px; text-align: center; }
+        .sensor-status-badge {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 11px; letter-spacing: 1px;
+        }
+        .badge-triggered { background: rgba(42,157,143,0.3); color: #2a9d8f; animation: pulse 0.5s infinite; }
+        .badge-monitoring { background: rgba(244,168,37,0.2); color: #f4a825; }
+        .badge-disconnected { background: rgba(85,85,85,0.3); color: #555; }
+
+        /* Sensor log */
+        .sensor-log {
+            background: #0d1b2a; border-radius: 8px; padding: 10px;
+            font-family: monospace; font-size: 11px; color: #4cc9f0;
+            max-height: 120px; overflow-y: auto; margin-top: 10px;
+            border: 1px solid #1b2838;
+        }
+        .log-line { padding: 1px 0; }
+        .log-trigger { color: #2a9d8f; font-weight: bold; }
+        .log-warn { color: #f4a825; }
+
+        /* History & reset */
+        .history-list { background: #16213e; border-radius: 12px; padding: 15px; border: 2px solid #0f3460; max-height: 200px; overflow-y: auto; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #0f3460; font-size: 14px; letter-spacing: 1px; }
+        .history-item:last-child { border-bottom: none; }
+        .history-win { color: #2a9d8f; }
+        .history-lose { color: #e63946; }
+        .no-bet { text-align: center; color: #555; font-size: 16px; letter-spacing: 2px; padding: 20px; }
+        .reset-btn {
+            width: 100%; padding: 15px; background: #333; color: #888;
+            border: 2px solid #555; border-radius: 10px; font-family: 'Bangers', cursive;
+            font-size: 16px; letter-spacing: 2px; cursor: pointer; margin-top: 15px; transition: background 0.2s;
+        }
+        .reset-btn:hover { background: #444; color: #fff; }
+        .connection-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+        .dot-connected { background: #2a9d8f; box-shadow: 0 0 8px #2a9d8f; }
+        .dot-disconnected { background: #e63946; }
+        .no-bets-msg { text-align: center; color: #555; font-size: 14px; letter-spacing: 1px; padding: 10px; }
+        .result-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px; }
+        .result-win { background: rgba(42,157,143,0.3); color: #2a9d8f; }
+        .result-lose { background: rgba(230,57,70,0.3); color: #e63946; }
+        .bt-not-supported { background: rgba(230,57,70,0.15); border: 1px solid #e63946; border-radius: 8px; padding: 12px; color: #e63946; font-size: 14px; text-align: center; letter-spacing: 1px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>CONTROLLER TERMINAL</h1>
+        <p><span class="connection-dot" id="connection-dot"></span><span id="connection-status">CONNECTING...</span></p>
+    </div>
+
+    <div class="status-card">
+        <div class="status-label">GAME STATUS</div>
+        <div class="status-value" id="game-status">LOADING...</div>
+    </div>
+
+    <div class="current-bets" id="current-bets-card" style="display:none;">
+        <div class="status-label">CURRENT ROUND BETS</div>
+        <div class="bets-count" id="bets-count">0 PLAYERS</div>
+        <div id="bets-list"></div>
+    </div>
+
+    <!-- Mode Toggle -->
+    <div class="section-title">TRIGGER MODE</div>
+    <div class="mode-toggle">
+        <button class="mode-btn active" id="mode-manual-btn" onclick="switchMode('manual')">MANUAL</button>
+        <button class="mode-btn" id="mode-sensor-btn" onclick="switchMode('sensor')">SENSOR</button>
+    </div>
+
+    <!-- Manual Mode -->
+    <div id="manual-panel">
+        <div class="section-title">WHICH ELEVATOR ARRIVED?</div>
+        <div class="elevator-grid">
+            <button class="elevator-btn elevator-btn-1" onclick="triggerElevator(1)" id="elev-btn-1" disabled>E1 - BLUE</button>
+            <button class="elevator-btn elevator-btn-2" onclick="triggerElevator(2)" id="elev-btn-2" disabled>E2 - RED</button>
+            <button class="elevator-btn elevator-btn-3" onclick="triggerElevator(3)" id="elev-btn-3" disabled>E3 - YELLOW</button>
+            <button class="elevator-btn elevator-btn-4" onclick="triggerElevator(4)" id="elev-btn-4" disabled>E4 - TEAL</button>
+        </div>
+    </div>
+
+    <!-- Sensor Mode -->
+    <div id="sensor-panel" class="sensor-panel">
+        <div id="bt-not-supported" class="bt-not-supported" style="display:none;">
+            WEB BLUETOOTH NOT SUPPORTED IN THIS BROWSER.<br>USE CHROME ON ANDROID/MAC/WINDOWS.
+        </div>
+
+        <div class="section-title">BRIGHTNESS THRESHOLD</div>
+        <div class="threshold-card">
+            <div class="status-label">TRIGGER WHEN BRIGHTNESS EXCEEDS:</div>
+            <div class="threshold-row">
+                <input type="range" class="threshold-slider" id="threshold-slider" min="0" max="1023" value="800" oninput="updateThreshold(this.value)">
+                <span class="threshold-val" id="threshold-val">800</span>
+            </div>
+        </div>
+
+        <div class="section-title">SENSORS (CONNECT VIA BLUETOOTH)</div>
+
+        <div class="sensor-card" id="sensor-card-1">
+            <div class="sensor-color-dot sensor-color-1"></div>
+            <div class="sensor-info">
+                <div class="sensor-name">E1 - BLUE <span class="sensor-status-badge badge-disconnected" id="sensor-badge-1">DISCONNECTED</span></div>
+                <div class="sensor-device" id="sensor-device-1">NO DEVICE</div>
+                <div class="sensor-brightness-bar"><div class="sensor-brightness-fill sensor-brightness-fill-1" id="sensor-bar-1"></div></div>
+            </div>
+            <span class="sensor-value" id="sensor-val-1">---</span>
+            <button class="sensor-connect-btn disconnected" id="sensor-btn-1" onclick="connectSensor(1)">CONNECT</button>
+        </div>
+
+        <div class="sensor-card" id="sensor-card-2">
+            <div class="sensor-color-dot sensor-color-2"></div>
+            <div class="sensor-info">
+                <div class="sensor-name">E2 - RED <span class="sensor-status-badge badge-disconnected" id="sensor-badge-2">DISCONNECTED</span></div>
+                <div class="sensor-device" id="sensor-device-2">NO DEVICE</div>
+                <div class="sensor-brightness-bar"><div class="sensor-brightness-fill sensor-brightness-fill-2" id="sensor-bar-2"></div></div>
+            </div>
+            <span class="sensor-value" id="sensor-val-2">---</span>
+            <button class="sensor-connect-btn disconnected" id="sensor-btn-2" onclick="connectSensor(2)">CONNECT</button>
+        </div>
+
+        <div class="sensor-card" id="sensor-card-3">
+            <div class="sensor-color-dot sensor-color-3"></div>
+            <div class="sensor-info">
+                <div class="sensor-name">E3 - YELLOW <span class="sensor-status-badge badge-disconnected" id="sensor-badge-3">DISCONNECTED</span></div>
+                <div class="sensor-device" id="sensor-device-3">NO DEVICE</div>
+                <div class="sensor-brightness-bar"><div class="sensor-brightness-fill sensor-brightness-fill-3" id="sensor-bar-3"></div></div>
+            </div>
+            <span class="sensor-value" id="sensor-val-3">---</span>
+            <button class="sensor-connect-btn disconnected" id="sensor-btn-3" onclick="connectSensor(3)">CONNECT</button>
+        </div>
+
+        <div class="sensor-card" id="sensor-card-4">
+            <div class="sensor-color-dot sensor-color-4"></div>
+            <div class="sensor-info">
+                <div class="sensor-name">E4 - TEAL <span class="sensor-status-badge badge-disconnected" id="sensor-badge-4">DISCONNECTED</span></div>
+                <div class="sensor-device" id="sensor-device-4">NO DEVICE</div>
+                <div class="sensor-brightness-bar"><div class="sensor-brightness-fill sensor-brightness-fill-4" id="sensor-bar-4"></div></div>
+            </div>
+            <span class="sensor-value" id="sensor-val-4">---</span>
+            <button class="sensor-connect-btn disconnected" id="sensor-btn-4" onclick="connectSensor(4)">CONNECT</button>
+        </div>
+
+        <div class="sensor-log" id="sensor-log">
+            <div class="log-line log-warn">[SYSTEM] SENSOR MODE READY. CONNECT DEVICES TO BEGIN.</div>
+        </div>
+    </div>
+
+    <div class="section-title" style="margin-top:20px;">RECENT HISTORY</div>
+    <div class="history-list" id="history-list">
+        <div class="no-bet">LOADING...</div>
+    </div>
+
+    <button class="reset-btn" onclick="forceReset()">FORCE RESET GAME</button>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script>
+        // ============================================
+        // Firebase
+        // ============================================
+        var firebaseConfig = {
+            apiKey: "AIzaSyCpSpPI2Ak6Ts4uMJ3tBqPPLziGDKssZGE",
+            authDomain: "elevator-game-8a4bb.firebaseapp.com",
+            databaseURL: "https://elevator-game-8a4bb-default-rtdb.firebaseio.com",
+            projectId: "elevator-game-8a4bb",
+            storageBucket: "elevator-game-8a4bb.firebasestorage.app",
+            messagingSenderId: "258702222821",
+            appId: "1:258702222821:web:9000b3f408dc56bfb73b0c",
+            measurementId: "G-BJPXKL7YPB"
+        };
+        firebase.initializeApp(firebaseConfig);
+        var db = firebase.firestore();
+
+        var ELEVATOR_NAMES = { 1: 'E1 (Blue)', 2: 'E2 (Red)', 3: 'E3 (Yellow)', 4: 'E4 (Teal)' };
+        var currentGameData = null;
+        var currentMode = 'manual';
+
+        // ============================================
+        // Sensor State
+        // ============================================
+        // ---- BLE CONFIG (to be updated by sensor AI) ----
+        // The sensor device should advertise a BLE service with:
+        //   SERVICE_UUID: the primary service UUID
+        //   CHARACTERISTIC_UUID: a characteristic that sends brightness as a uint16 (0-1023)
+        // The characteristic should support notifications (notify/indicate).
+        // Each sensor is a separate BLE peripheral.
+        var BLE_CONFIG = {
+            SERVICE_UUID:        '19b10000-e8f2-537e-4f6c-d104768a1214',
+            CHARACTERISTIC_UUID: '19b10001-e8f2-537e-4f6c-d104768a1214'
+        };
+
+        var sensors = {
+            1: { device: null, characteristic: null, connected: false, brightness: 0 },
+            2: { device: null, characteristic: null, connected: false, brightness: 0 },
+            3: { device: null, characteristic: null, connected: false, brightness: 0 },
+            4: { device: null, characteristic: null, connected: false, brightness: 0 }
+        };
+        var brightnessThreshold = 800;
+        var sensorTriggerCooldown = false;
+
+        // ============================================
+        // Connection status
+        // ============================================
+        var dot = document.getElementById('connection-dot');
+        var connText = document.getElementById('connection-status');
+        dot.className = 'connection-dot dot-connected';
+        connText.textContent = 'CONNECTED TO FIREBASE';
+
+        // ============================================
+        // Mode switching
+        // ============================================
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('mode-manual-btn').className = 'mode-btn' + (mode === 'manual' ? ' active' : '');
+            document.getElementById('mode-sensor-btn').className = 'mode-btn' + (mode === 'sensor' ? ' active' : '');
+            document.getElementById('manual-panel').style.display = mode === 'manual' ? 'block' : 'none';
+            document.getElementById('sensor-panel').className = 'sensor-panel' + (mode === 'sensor' ? ' active' : '');
+
+            if (mode === 'sensor' && !navigator.bluetooth) {
+                document.getElementById('bt-not-supported').style.display = 'block';
+            }
+        }
+
+        // ============================================
+        // Firebase Game State Listener
+        // ============================================
+        db.collection('gameState').doc('current').onSnapshot(function(doc) {
+            if (doc.exists) {
+                currentGameData = doc.data();
+                updateUI(currentGameData);
+            } else {
+                db.collection('gameState').doc('current').set({
+                    status: 'idle', bets: [], actualElevator: null, results: [],
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                updateUI({ status: 'idle', bets: [] });
+            }
+        }, function(error) {
+            console.error('Listener error:', error);
+            dot.className = 'connection-dot dot-disconnected';
+            connText.textContent = 'CONNECTION ERROR';
+        });
+
+        function updateUI(data) {
+            var statusEl = document.getElementById('game-status');
+            var betsCard = document.getElementById('current-bets-card');
+            var btns = [1,2,3,4].map(function(i) { return document.getElementById('elev-btn-' + i); });
+            var bets = data.bets || [];
+
+            if (data.status === 'betting') {
+                statusEl.textContent = 'BETTING IN PROGRESS - ' + bets.length + ' PLAYER(S)';
+                statusEl.className = 'status-value status-betting';
+                betsCard.style.display = 'block';
+                document.getElementById('bets-count').textContent = bets.length + ' PLAYER(S) BETTING';
+                renderCurrentBets(bets);
+                btns.forEach(function(btn) { btn.disabled = false; });
+            } else if (data.status === 'resolved') {
+                var results = data.results || [];
+                var winCount = results.filter(function(r) { return r.result === 'win'; }).length;
+                statusEl.textContent = 'RESOLVED - ' + winCount + '/' + results.length + ' WON!';
+                statusEl.className = 'status-value status-resolved';
+                betsCard.style.display = 'block';
+                document.getElementById('bets-count').textContent = 'ROUND COMPLETE';
+                renderResolvedBets(results, data.actualElevator);
+                btns.forEach(function(btn) { btn.disabled = true; });
+                sensorTriggerCooldown = false;
+            } else {
+                statusEl.textContent = 'IDLE - WAITING FOR PLAYERS';
+                statusEl.className = 'status-value status-idle';
+                betsCard.style.display = 'none';
+                btns.forEach(function(btn) { btn.disabled = true; });
+                sensorTriggerCooldown = false;
+            }
+        }
+
+        function renderCurrentBets(bets) {
+            var container = document.getElementById('bets-list');
+            if (bets.length === 0) { container.innerHTML = '<div class="no-bets-msg">NO BETS YET</div>'; return; }
+            var html = '';
+            bets.forEach(function(b, idx) {
+                html += '<div class="bet-item"><span class="bet-player">' + (idx+1) + '. ' + (b.playerName||'?').toUpperCase() + '</span><span class="bet-choice bet-choice-' + b.userChoice + '">' + (ELEVATOR_NAMES[b.userChoice]||'?') + '</span></div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function renderResolvedBets(results, actualElevator) {
+            var container = document.getElementById('bets-list');
+            var html = '<div style="color:#f4a825;margin-bottom:8px;">ELEVATOR ' + (ELEVATOR_NAMES[actualElevator]||'?') + ' ARRIVED</div>';
+            results.forEach(function(r) {
+                var cls = r.result === 'win' ? 'result-win' : 'result-lose';
+                var text = r.result === 'win' ? 'WON' : 'LOST';
+                html += '<div class="bet-item"><span class="bet-player">' + (r.playerName||'?').toUpperCase() + '<span class="result-badge ' + cls + '">' + text + '</span></span><span class="bet-choice bet-choice-' + r.userChoice + '">' + (ELEVATOR_NAMES[r.userChoice]||'?') + '</span></div>';
+            });
+            container.innerHTML = html;
+        }
+
+        // ============================================
+        // Trigger Elevator (shared by manual + sensor)
+        // ============================================
+        async function triggerElevator(elevNum) {
+            if (!currentGameData || currentGameData.status !== 'betting') return;
+            var bets = currentGameData.bets || [];
+            if (bets.length === 0) return;
+
+            var results = bets.map(function(bet) {
+                return { playerName: bet.playerName, userChoice: bet.userChoice, result: bet.userChoice === elevNum ? 'win' : 'lose' };
+            });
+
+            await db.collection('gameState').doc('current').update({
+                actualElevator: elevNum, results: results, status: 'resolved',
+                resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            var batch = db.batch();
+            results.forEach(function(r) {
+                var ref = db.collection('bets').doc();
+                batch.set(ref, { playerName: r.playerName, userChoice: r.userChoice, actualElevator: elevNum, result: r.result, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            });
+            await batch.commit();
+            console.log('Elevator', elevNum, 'arrived.', results.length, 'bets resolved.');
+            loadHistory();
+        }
+
+        async function forceReset() {
+            await db.collection('gameState').doc('current').set({
+                status: 'idle', bets: [], actualElevator: null, results: [],
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        // ============================================
+        // Sensor: Web Bluetooth Connection
+        // ============================================
+        async function connectSensor(elevNum) {
+            if (!navigator.bluetooth) {
+                sensorLog('ERROR: Web Bluetooth not supported', 'warn');
+                return;
+            }
+
+            var sensor = sensors[elevNum];
+            if (sensor.connected) {
+                disconnectSensor(elevNum);
+                return;
+            }
+
+            try {
+                sensorLog('Scanning for E' + elevNum + ' sensor...', 'warn');
+
+                var device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: [BLE_CONFIG.SERVICE_UUID] }],
+                    optionalServices: [BLE_CONFIG.SERVICE_UUID]
+                });
+
+                sensorLog('Connecting to: ' + device.name + '...');
+                var server = await device.gatt.connect();
+                var service = await server.getPrimaryService(BLE_CONFIG.SERVICE_UUID);
+                var characteristic = await service.getCharacteristic(BLE_CONFIG.CHARACTERISTIC_UUID);
+
+                await characteristic.startNotifications();
+                characteristic.addEventListener('characteristicvaluechanged', function(event) {
+                    handleSensorData(elevNum, event.target.value);
+                });
+
+                device.addEventListener('gattserverdisconnected', function() {
+                    onSensorDisconnected(elevNum);
+                });
+
+                sensor.device = device;
+                sensor.characteristic = characteristic;
+                sensor.connected = true;
+
+                updateSensorUI(elevNum, 'connected', device.name || 'BLE DEVICE');
+                sensorLog('E' + elevNum + ' sensor connected: ' + (device.name || 'DEVICE'), 'trigger');
+
+            } catch (err) {
+                sensorLog('E' + elevNum + ' connection failed: ' + err.message, 'warn');
+            }
+        }
+
+        function disconnectSensor(elevNum) {
+            var sensor = sensors[elevNum];
+            if (sensor.device && sensor.device.gatt.connected) {
+                sensor.device.gatt.disconnect();
+            }
+            sensor.connected = false;
+            sensor.device = null;
+            sensor.characteristic = null;
+            sensor.brightness = 0;
+            updateSensorUI(elevNum, 'disconnected', null);
+            sensorLog('E' + elevNum + ' sensor disconnected');
+        }
+
+        function onSensorDisconnected(elevNum) {
+            sensors[elevNum].connected = false;
+            sensors[elevNum].characteristic = null;
+            updateSensorUI(elevNum, 'disconnected', null);
+            sensorLog('E' + elevNum + ' sensor lost connection', 'warn');
+        }
+
+        // ============================================
+        // Sensor: Handle incoming brightness data
+        // ============================================
+        /**
+         * INTERFACE CONTRACT:
+         * The BLE characteristic should send data as:
+         *   - A DataView containing a uint16 (little-endian) brightness value
+         *   - Range: 0 (dark) to 1023 (bright)
+         *   - Update frequency: at least 5Hz (every 200ms)
+         *
+         * Alternative accepted formats:
+         *   - Single uint8 (0-255): will be scaled to 0-1023
+         *   - UTF-8 string of a number: will be parsed
+         */
+        function handleSensorData(elevNum, dataView) {
+            var brightness = 0;
+
+            if (dataView.byteLength >= 2) {
+                brightness = dataView.getUint16(0, true);
+            } else if (dataView.byteLength === 1) {
+                brightness = Math.round(dataView.getUint8(0) * (1023 / 255));
+            } else {
+                var decoder = new TextDecoder();
+                var str = decoder.decode(dataView);
+                brightness = parseInt(str) || 0;
+            }
+
+            brightness = Math.max(0, Math.min(1023, brightness));
+            sensors[elevNum].brightness = brightness;
+
+            // Update UI
+            var pct = Math.round((brightness / 1023) * 100);
+            var bar = document.getElementById('sensor-bar-' + elevNum);
+            var val = document.getElementById('sensor-val-' + elevNum);
+            if (bar) bar.style.width = pct + '%';
+            if (val) val.textContent = brightness;
+
+            // Check threshold trigger
+            if (currentMode === 'sensor' && brightness >= brightnessThreshold && !sensorTriggerCooldown) {
+                if (currentGameData && currentGameData.status === 'betting') {
+                    sensorTriggerCooldown = true;
+                    sensorLog('TRIGGERED! E' + elevNum + ' brightness=' + brightness + ' >= ' + brightnessThreshold, 'trigger');
+                    triggerElevator(elevNum);
+                }
+            }
+        }
+
+        // ============================================
+        // Sensor UI updates
+        // ============================================
+        function updateSensorUI(elevNum, status, deviceName) {
+            var badge = document.getElementById('sensor-badge-' + elevNum);
+            var deviceEl = document.getElementById('sensor-device-' + elevNum);
+            var btn = document.getElementById('sensor-btn-' + elevNum);
+            var bar = document.getElementById('sensor-bar-' + elevNum);
+            var val = document.getElementById('sensor-val-' + elevNum);
+
+            if (status === 'connected') {
+                badge.textContent = 'MONITORING';
+                badge.className = 'sensor-status-badge badge-monitoring';
+                deviceEl.textContent = deviceName || 'CONNECTED';
+                btn.textContent = 'DISCONNECT';
+                btn.className = 'sensor-connect-btn connected';
+            } else {
+                badge.textContent = 'DISCONNECTED';
+                badge.className = 'sensor-status-badge badge-disconnected';
+                deviceEl.textContent = 'NO DEVICE';
+                btn.textContent = 'CONNECT';
+                btn.className = 'sensor-connect-btn disconnected';
+                if (bar) bar.style.width = '0%';
+                if (val) val.textContent = '---';
+            }
+        }
+
+        function updateThreshold(val) {
+            brightnessThreshold = parseInt(val);
+            document.getElementById('threshold-val').textContent = val;
+        }
+
+        // ============================================
+        // Sensor log
+        // ============================================
+        function sensorLog(msg, type) {
+            var log = document.getElementById('sensor-log');
+            if (!log) return;
+            var cls = type === 'trigger' ? 'log-trigger' : type === 'warn' ? 'log-warn' : '';
+            var time = new Date().toLocaleTimeString();
+            log.innerHTML += '<div class="log-line ' + cls + '">[' + time + '] ' + msg + '</div>';
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // ============================================
+        // PUBLIC API: For external sensor integrations
+        // ============================================
+        /**
+         * Call this function from external code to feed brightness data
+         * without using Web Bluetooth (e.g., from a WebSocket, serial bridge, etc.)
+         *
+         * @param {number} elevNum - Elevator number (1-4)
+         * @param {number} brightness - Brightness value (0-1023)
+         */
+        window.feedSensorData = function(elevNum, brightness) {
+            if (elevNum < 1 || elevNum > 4) return;
+            sensors[elevNum].connected = true;
+            updateSensorUI(elevNum, 'connected', 'EXTERNAL FEED');
+            var dv = new DataView(new ArrayBuffer(2));
+            dv.setUint16(0, brightness, true);
+            handleSensorData(elevNum, dv);
+        };
+
+        // ============================================
+        // History
+        // ============================================
+        async function loadHistory() {
+            try {
+                var snapshot = await db.collection('bets').orderBy('timestamp', 'desc').limit(20).get();
+                var container = document.getElementById('history-list');
+                if (snapshot.empty) { container.innerHTML = '<div class="no-bet">NO BETS YET</div>'; return; }
+                var html = '';
+                snapshot.forEach(function(doc) {
+                    var d = doc.data();
+                    var cls = d.result === 'win' ? 'history-win' : 'history-lose';
+                    html += '<div class="history-item"><span>' + (d.playerName||'?').toUpperCase() + '</span><span>BET: ' + (ELEVATOR_NAMES[d.userChoice]||'?') + '</span><span class="' + cls + '">' + (d.result==='win'?'WON':'LOST') + '</span></div>';
+                });
+                container.innerHTML = html;
+            } catch (e) { console.error('History load error:', e); }
+        }
+        loadHistory();
+    </script>
+</body>
+</html>

@@ -4,50 +4,229 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Elevator Bet Game</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=20260217">
 </head>
 <body>
-    <!-- 开始界面 -->
-    <div id="start-screen" class="screen active">
-        <h1>Make Your BET!</h1>
-        <p class="subtitle">Which elevator will arrive first?</p>
-        <button class="btn-large" onclick="startGame()">Start!</button>
+
+    <!-- ==================== SCREEN 1: START ==================== -->
+    <div id="start-screen" class="screen active" onclick="startGame()">
+        <div class="start-bg">
+            <!-- Comic explosion burst SVG -->
+            <svg class="explosion-burst" viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg">
+                <polygon class="burst-red" points="400,-30 445,150 580,-20 475,170 750,30 500,200 800,160 520,240 800,320 500,280 750,450 460,310 580,500 430,330 400,510 370,330 220,500 340,310 50,450 300,280 0,320 280,240 0,160 300,200 50,30 325,170 220,-20 355,150"/>
+                <polygon class="burst-blue" points="400,10 440,165 550,10 468,180 700,65 492,215 790,190 510,250 780,350 490,285 690,470 455,315 550,490 425,335 400,490 375,335 250,490 345,315 110,470 310,285 20,350 290,250 10,190 308,215 100,65 332,180 250,10 360,165"/>
+                <polygon class="burst-yellow" points="400,70 432,180 510,80 462,200 620,130 480,230 700,220 498,260 660,350 475,290 590,430 445,310 500,460 425,325 400,460 375,325 300,460 355,310 210,430 325,290 140,350 302,260 100,220 320,230 180,130 338,200 290,80 368,180"/>
+            </svg>
+            <div class="start-text">
+                <h1 class="comic-title start-title">START!<br>YOUR BET</h1>
+                <p class="comic-subtitle">CLICK TO CONTINUE!</p>
+            </div>
+        </div>
     </div>
 
-    <!-- 选择电梯界面 -->
+    <!-- ==================== SCREEN 2: ASK NAME ==================== -->
+    <div id="name-screen" class="screen">
+        <div class="name-bg">
+            <!-- Comic explosion burst with cloud bottom -->
+            <svg class="cloud-burst" viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg">
+                <path class="cloud-outline" d="M400,15 L440,80 L500,20 L490,100 L570,45 L530,120 L630,75 L570,150 L680,115 L600,180 L730,165 L630,215 L760,225 L650,255 L750,290 L640,295 L730,340 L620,330 Q630,370 590,380 Q590,420 540,415 Q520,445 480,430 Q450,455 420,435 Q390,455 360,430 Q330,450 300,425 Q270,445 240,420 Q210,440 185,415 Q155,430 140,400 Q110,400 110,370 L70,340 L170,295 L50,290 L160,255 L40,225 L170,215 L70,165 L200,180 L120,115 L230,150 L170,75 L270,120 L230,45 L310,100 L300,20 L360,80 Z"/>
+                <path class="cloud-fill" d="M400,40 L435,95 L485,45 L478,115 L550,68 L515,135 L608,95 L555,163 L655,132 L582,192 L705,180 L612,225 L732,235 L632,262 L722,295 L622,298 L702,335 L605,328 Q615,365 578,375 Q578,410 532,405 Q515,432 478,420 Q452,442 425,425 Q398,442 372,422 Q345,440 318,418 Q292,435 265,415 Q238,432 215,410 Q188,422 172,398 Q148,398 145,372 L98,345 L188,300 L78,295 L178,262 L68,235 L188,225 L95,180 L218,192 L145,132 L248,163 L192,95 L285,135 L250,68 L322,115 L315,45 L365,95 Z"/>
+            </svg>
+            <div class="name-content">
+                <h1 class="comic-title name-title">WHO'S BETTING?!</h1>
+                <input type="text" id="player-name" class="name-input" placeholder="Input Name box...." maxlength="20" oninput="filterNameSuggestions(); hideNameWarning();" autocomplete="off">
+                <div id="name-warning" class="name-warning" style="display:none;"></div>
+                <div id="name-suggestions" class="name-suggestions" style="display:none;"></div>
+            </div>
+            <button class="next-btn" onclick="submitName()">NEXT &rsaquo;&rsaquo;&rsaquo;</button>
+        </div>
+    </div>
+
+    <!-- ==================== SCREEN 3: MAKE YOUR BET ==================== -->
     <div id="bet-screen" class="screen">
-        <h2>Make Your BET!</h2>
-        <div class="elevator-buttons">
-            <button class="btn-elevator" onclick="selectElevator(1)">E1</button>
-            <button class="btn-elevator" onclick="selectElevator(2)">E2</button>
-            <button class="btn-elevator" onclick="selectElevator(3)">E3</button>
-            <button class="btn-elevator" onclick="selectElevator(4)">E4</button>
+        <div class="bet-bg">
+            <!-- Speed lines -->
+            <div class="speed-lines">
+                <svg viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg">
+                    <line x1="400" y1="100" x2="0" y2="0" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+                    <line x1="400" y1="100" x2="50" y2="80" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                    <line x1="400" y1="100" x2="0" y2="150" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+                    <line x1="400" y1="100" x2="0" y2="250" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+                    <line x1="400" y1="100" x2="0" y2="350" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+                    <line x1="400" y1="100" x2="0" y2="480" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                    <line x1="400" y1="100" x2="100" y2="480" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+                    <line x1="400" y1="100" x2="200" y2="480" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                    <line x1="400" y1="100" x2="300" y2="480" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+                    <line x1="400" y1="100" x2="400" y2="480" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+                    <line x1="400" y1="100" x2="500" y2="480" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+                    <line x1="400" y1="100" x2="600" y2="480" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                    <line x1="400" y1="100" x2="700" y2="480" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+                    <line x1="400" y1="100" x2="800" y2="480" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                    <line x1="400" y1="100" x2="800" y2="350" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+                    <line x1="400" y1="100" x2="800" y2="250" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+                    <line x1="400" y1="100" x2="800" y2="150" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+                    <line x1="400" y1="100" x2="800" y2="50" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                    <line x1="400" y1="100" x2="800" y2="0" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+                    <line x1="400" y1="100" x2="650" y2="0" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                    <line x1="400" y1="100" x2="550" y2="0" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+                    <line x1="400" y1="100" x2="250" y2="0" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                    <line x1="400" y1="100" x2="150" y2="0" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+                </svg>
+            </div>
+            <h1 class="comic-title bet-title">MAKE YOUR BET!</h1>
+            <div class="elevator-doors">
+                <div class="elevator-door" onclick="selectElevator(1)">
+                    <div class="door-frame">
+                        <div class="door-panel door-blue"></div>
+                    </div>
+                </div>
+                <div class="elevator-door" onclick="selectElevator(2)">
+                    <div class="door-frame">
+                        <div class="door-panel door-red"></div>
+                    </div>
+                </div>
+                <div class="elevator-door" onclick="selectElevator(3)">
+                    <div class="door-frame">
+                        <div class="door-panel door-yellow"></div>
+                    </div>
+                </div>
+                <div class="elevator-door" onclick="selectElevator(4)">
+                    <div class="door-frame">
+                        <div class="door-panel door-teal"></div>
+                    </div>
+                </div>
+            </div>
+            <button class="back-btn bet-back-btn" onclick="goBack('bet')">&lsaquo;&lsaquo;&lsaquo; BACK</button>
         </div>
     </div>
 
-    <!-- 确认界面 -->
-    <div id="confirm-screen" class="screen">
-        <h2>You chose Elevator <span id="user-choice"></span></h2>
-        <div class="confirm-buttons">
-            <button class="btn-confirm" onclick="confirmBet('sure')">Are you sure?</button>
-            <button class="btn-confirm" onclick="confirmBet('maybe')">Maybe?</button>
-            <button class="btn-confirm" onclick="confirmBet('really')">Really?</button>
-            <button class="btn-confirm" onclick="confirmBet('forsure')">For sure?</button>
+    <!-- ==================== IDLE OVERLAY (no bets) ==================== -->
+    <div id="idle-overlay" class="idle-overlay">
+        <div class="idle-content" onclick="dismissIdle()">
+            <svg class="idle-burst" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+                <polygon class="burst-yellow" points="300,10 330,120 400,30 350,140 470,80 360,170 520,150 370,200 500,270 360,230 430,350 330,260 370,390 310,280 300,400 290,280 230,390 270,260 170,350 240,230 100,270 230,200 80,150 240,170 130,80 250,140 200,30 270,120"/>
+            </svg>
+            <div class="idle-text">
+                <h1 class="comic-title idle-title">STILL THERE?!</h1>
+                <p class="comic-subtitle idle-sub">TAP ANYWHERE TO CONTINUE!</p>
+                <p class="idle-countdown" id="idle-countdown"></p>
+            </div>
         </div>
     </div>
 
-    <!-- 结果界面 -->
-    <div id="result-screen" class="screen">
-        <h1 id="result-message"></h1>
-        <p id="result-detail"></p>
-        <p class="thanks">Thanks for betting!</p>
-        <div id="qr-code"></div>
+    <!-- ==================== IDLE OVERLAY (bets active) ==================== -->
+    <div id="idle-betting-overlay" class="idle-overlay">
+        <div class="idle-content" onclick="dismissIdleBetting()">
+            <svg class="idle-burst" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+                <polygon class="burst-yellow" points="300,10 330,120 400,30 350,140 470,80 360,170 520,150 370,200 500,270 360,230 430,350 330,260 370,390 310,280 300,400 290,280 230,390 270,260 170,350 240,230 100,270 230,200 80,150 240,170 130,80 250,140 200,30 270,120"/>
+            </svg>
+            <div class="idle-text">
+                <h1 class="comic-title idle-title idle-betting-title">BET IN<br>PROGRESS!</h1>
+                <p class="idle-betting-count" id="idle-betting-count">1 PLAYER WAITING</p>
+                <p class="comic-subtitle idle-sub">TAP TO JOIN!</p>
+            </div>
+        </div>
     </div>
 
-    <!-- 统计显示 -->
-    <div id="stats" class="stats-corner">
-        <p>Total Bets: <span id="total-bets">0</span></p>
-        <p>Win Rate: <span id="win-rate">0</span>%</p>
+    <!-- ==================== SCREEN 4: CONFIRM STEP 1 ==================== -->
+    <div id="confirm1-screen" class="screen">
+        <div class="confirm-bg confirm-bg-blue">
+            <svg class="thought-cloud" viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg">
+                <ellipse class="cloud-bubble-sm" cx="180" cy="400" rx="25" ry="22"/>
+                <ellipse class="cloud-bubble-md" cx="140" cy="360" rx="35" ry="30"/>
+                <path class="cloud-main-outline" d="M130,310 Q90,280 120,240 Q90,200 130,180 Q120,140 170,130 Q170,90 220,90 Q240,60 290,70 Q320,50 360,70 Q400,45 440,70 Q470,50 510,75 Q540,60 570,85 Q600,70 630,100 Q670,90 680,130 Q720,130 720,170 Q750,185 740,220 Q770,240 740,270 Q760,300 720,310 Q740,340 700,345 Q710,375 670,370 Q660,400 620,390 Q600,415 560,400 Q530,420 490,400 Q460,420 430,400 Q400,415 370,395 Q340,415 310,395 Q280,410 250,390 Q220,405 200,380 Q170,390 160,360 Q130,360 130,330 Q110,325 130,310 Z"/>
+                <path class="cloud-main-fill" d="M145,305 Q110,278 135,242 Q108,205 145,188 Q135,152 180,142 Q180,105 225,105 Q245,78 288,88 Q318,68 355,85 Q393,62 432,85 Q462,65 498,88 Q528,75 558,98 Q588,85 618,112 Q655,105 665,140 Q700,142 700,175 Q728,190 720,220 Q748,240 722,268 Q740,295 705,308 Q722,335 688,340 Q698,368 662,362 Q652,390 615,382 Q598,405 562,392 Q535,410 498,395 Q468,412 440,395 Q412,408 385,392 Q358,408 330,390 Q305,405 278,388 Q252,400 232,378 Q205,388 195,362 Q168,365 165,338 Q142,335 148,315 Q128,310 145,305 Z"/>
+            </svg>
+            <div class="confirm-content">
+                <h1 class="comic-title confirm-title">ARE YOU SURE?</h1>
+                <p class="confirm-subtitle">YOU'RE REALLY GONNA PICK THIS? IN THIS ECONOMY?</p>
+                <button class="yes-btn" onclick="confirmStep(1)">YES</button>
+            </div>
+            <button class="back-btn" onclick="goBack('confirm1')">&lsaquo;&lsaquo;&lsaquo; BACK</button>
+        </div>
+    </div>
+
+    <!-- ==================== SCREEN 5: CONFIRM STEP 2 ==================== -->
+    <div id="confirm2-screen" class="screen">
+        <div class="confirm-bg confirm-bg-teal">
+            <svg class="thought-cloud" viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg">
+                <ellipse class="cloud-bubble-sm" cx="180" cy="400" rx="25" ry="22"/>
+                <ellipse class="cloud-bubble-md" cx="140" cy="360" rx="35" ry="30"/>
+                <path class="cloud-main-outline" d="M130,310 Q90,280 120,240 Q90,200 130,180 Q120,140 170,130 Q170,90 220,90 Q240,60 290,70 Q320,50 360,70 Q400,45 440,70 Q470,50 510,75 Q540,60 570,85 Q600,70 630,100 Q670,90 680,130 Q720,130 720,170 Q750,185 740,220 Q770,240 740,270 Q760,300 720,310 Q740,340 700,345 Q710,375 670,370 Q660,400 620,390 Q600,415 560,400 Q530,420 490,400 Q460,420 430,400 Q400,415 370,395 Q340,415 310,395 Q280,410 250,390 Q220,405 200,380 Q170,390 160,360 Q130,360 130,330 Q110,325 130,310 Z"/>
+                <path class="cloud-main-fill" d="M145,305 Q110,278 135,242 Q108,205 145,188 Q135,152 180,142 Q180,105 225,105 Q245,78 288,88 Q318,68 355,85 Q393,62 432,85 Q462,65 498,88 Q528,75 558,98 Q588,85 618,112 Q655,105 665,140 Q700,142 700,175 Q728,190 720,220 Q748,240 722,268 Q740,295 705,308 Q722,335 688,340 Q698,368 662,362 Q652,390 615,382 Q598,405 562,392 Q535,410 498,395 Q468,412 440,395 Q412,408 385,392 Q358,408 330,390 Q305,405 278,388 Q252,400 232,378 Q205,388 195,362 Q168,365 165,338 Q142,335 148,315 Q128,310 145,305 Z"/>
+            </svg>
+            <div class="confirm-content">
+                <h1 class="comic-title confirm-title confirm-title-red">REALLY???</h1>
+                <p class="confirm-subtitle">FUN FACT: HUMANS ARE STATISTICALLY 73% MORE CONFIDENT RIGHT BEFORE A TERRIBLE DECISION</p>
+                <button class="yes-btn" onclick="confirmStep(2)">YES</button>
+            </div>
+            <button class="back-btn" onclick="goBack('confirm2')">&lsaquo;&lsaquo;&lsaquo; BACK</button>
+        </div>
+    </div>
+
+    <!-- ==================== SCREEN 6: CONFIRM STEP 3 ==================== -->
+    <div id="confirm3-screen" class="screen">
+        <div class="confirm-bg confirm-bg-red">
+            <svg class="thought-cloud" viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg">
+                <ellipse class="cloud-bubble-sm" cx="180" cy="400" rx="25" ry="22"/>
+                <ellipse class="cloud-bubble-md" cx="140" cy="360" rx="35" ry="30"/>
+                <path class="cloud-main-outline" d="M130,310 Q90,280 120,240 Q90,200 130,180 Q120,140 170,130 Q170,90 220,90 Q240,60 290,70 Q320,50 360,70 Q400,45 440,70 Q470,50 510,75 Q540,60 570,85 Q600,70 630,100 Q670,90 680,130 Q720,130 720,170 Q750,185 740,220 Q770,240 740,270 Q760,300 720,310 Q740,340 700,345 Q710,375 670,370 Q660,400 620,390 Q600,415 560,400 Q530,420 490,400 Q460,420 430,400 Q400,415 370,395 Q340,415 310,395 Q280,410 250,390 Q220,405 200,380 Q170,390 160,360 Q130,360 130,330 Q110,325 130,310 Z"/>
+                <path class="cloud-main-fill" d="M145,305 Q110,278 135,242 Q108,205 145,188 Q135,152 180,142 Q180,105 225,105 Q245,78 288,88 Q318,68 355,85 Q393,62 432,85 Q462,65 498,88 Q528,75 558,98 Q588,85 618,112 Q655,105 665,140 Q700,142 700,175 Q728,190 720,220 Q748,240 722,268 Q740,295 705,308 Q722,335 688,340 Q698,368 662,362 Q652,390 615,382 Q598,405 562,392 Q535,410 498,395 Q468,412 440,395 Q412,408 385,392 Q358,408 330,390 Q305,405 278,388 Q252,400 232,378 Q205,388 195,362 Q168,365 165,338 Q142,335 148,315 Q128,310 145,305 Z"/>
+            </svg>
+            <div class="confirm-content">
+                <h1 class="comic-title confirm-title">FINAL ANSWER?</h1>
+                <p class="confirm-subtitle">GO BIG OR GO HOME!!</p>
+                <button class="yes-btn" onclick="confirmStep(3)">YES</button>
+            </div>
+            <button class="back-btn" onclick="goBack('confirm3')">&lsaquo;&lsaquo;&lsaquo; BACK</button>
+        </div>
+    </div>
+
+    <!-- ==================== SCREEN 7: THANKS FOR BETTING ==================== -->
+    <div id="thanks-screen" class="screen">
+        <div class="thanks-bg">
+            <svg class="starburst" viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg">
+                <polygon class="star-outer" points="400,0 430,160 520,20 450,170 620,60 470,190 700,130 490,210 750,230 500,240 720,340 490,270 650,420 460,300 540,470 430,320 400,480 370,320 260,470 340,300 150,420 310,270 80,340 300,240 50,230 310,210 100,130 330,190 180,60 350,170 280,20 370,160"/>
+                <polygon class="star-inner" points="400,80 420,190 480,100 440,200 560,140 450,220 630,200 460,240 620,310 450,265 560,390 435,290 490,440 420,310 400,450 380,310 310,440 365,290 240,390 350,265 180,310 340,240 170,200 350,220 240,140 360,200 320,100 380,190"/>
+            </svg>
+            <div class="thanks-content">
+                <h1 class="comic-title thanks-title">THANKS<br>FOR BETTING!</h1>
+                <p class="comic-subtitle">NEXT PLAYER CAN JOIN NOW!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SCREEN 7.5: WAITING FOR ELEVATOR ==================== -->
+    <div id="waiting-screen" class="screen">
+        <div class="waiting-bg">
+            <h1 class="comic-title waiting-title">WAITING FOR<br>ELEVATOR...</h1>
+            <div class="waiting-dots">
+                <span class="wdot wdot1"></span>
+                <span class="wdot wdot2"></span>
+                <span class="wdot wdot3"></span>
+            </div>
+            <p class="waiting-count" id="waiting-count">1 PLAYER BETTING</p>
+            <button class="join-btn" onclick="startGame()">JOIN BET?</button>
+        </div>
+    </div>
+
+    <!-- ==================== SCREEN 8: RESULTS ==================== -->
+    <div id="results-screen" class="screen">
+        <div class="results-bg">
+            <svg class="starburst" viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg">
+                <polygon class="star-outer" points="400,0 430,160 520,20 450,170 620,60 470,190 700,130 490,210 750,230 500,240 720,340 490,270 650,420 460,300 540,470 430,320 400,480 370,320 260,470 340,300 150,420 310,270 80,340 300,240 50,230 310,210 100,130 330,190 180,60 350,170 280,20 370,160"/>
+                <polygon class="star-inner" points="400,80 420,190 480,100 440,200 560,140 450,220 630,200 460,240 620,310 450,265 560,390 435,290 490,440 420,310 400,450 380,310 310,440 365,290 240,390 350,265 180,310 340,240 170,200 350,220 240,140 360,200 320,100 380,190"/>
+            </svg>
+            <div class="results-overlay">
+                <h1 class="comic-title results-title">RESULTS!</h1>
+                <div id="results-content" class="results-content-area"></div>
+                <div id="qr-code" class="qr-area results-qr"></div>
+            </div>
+            <button class="see-more-btn results-reset-btn" onclick="resetGame()">PLAY AGAIN &rsaquo;&rsaquo;&rsaquo;</button>
+        </div>
     </div>
 
     <!-- Firebase SDK -->
@@ -57,8 +236,7 @@
     <!-- QR Code Library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     
-    <!-- 主脚本 -->
-    <script src="app.js"></script>
+    <!-- Main Script -->
+    <script src="app.js?v=20260217"></script>
 </body>
 </html>
-
