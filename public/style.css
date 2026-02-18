@@ -853,7 +853,7 @@ body {
 .waiting-bg {
     width: 100%;
     height: 100%;
-    background: #1a4a4a url('images/waiting-bg.png') center center / cover no-repeat;
+    background: #1a4a4a url('images/waiting-bg.png') center 58% / cover no-repeat;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -897,7 +897,7 @@ body {
 .waiting-count-wrap {
     position: relative;
     margin-bottom: 18px;
-    margin-top: 40px;
+    margin-top: 8px;
 }
 
 .waiting-count-wrap::before {

@@ -678,6 +678,7 @@ function handleIdleTimeout() {
     if (isRankingPopupVisible()) return;
     var activeScreen = document.querySelector('.screen.active');
     if (activeScreen && activeScreen.id === 'start-screen') return;
+    if (activeScreen && activeScreen.id === 'waiting-screen') return;
     if (currentRoundStatus === 'betting' && currentRoundBets.length > 0) {
         showIdleBettingOverlay();
     } else {
