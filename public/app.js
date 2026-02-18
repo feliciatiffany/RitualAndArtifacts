@@ -54,13 +54,46 @@ var idleTimerId = null;
 var idleCountdownId = null;
 var idleCountdownValue = 5;
 var idleActive = false;
-var IDLE_TIMEOUT = 10000;
+var idleBettingCountdownId = null;
+var IDLE_TIMEOUT = 10000;  // 10 seconds - then 5 second countdown
+var IDLE_TIMEOUT_ENABLED = true;
 
-var IDLE_SCREENS = ['name-screen', 'bet-screen', 'confirm1-screen', 'confirm2-screen', 'confirm3-screen'];
+var IDLE_SCREENS = ['name-screen', 'bet-screen', 'confirm1-screen', 'confirm2-screen', 'confirm3-screen', 'confirm4-screen', 'thanks-screen', 'transition-screen', 'waiting-screen'];
+
+var thanksScreenTimeoutId = null;
+var lastScreenBeforeIdle = null;
+
+// ============================================
+// BGM Music - scene mapping
+// ============================================
+function updateBGMForScreen(screenId) {
+    if (typeof BGM === 'undefined') return;
+    var scene = null;
+    if (screenId === 'start-screen') scene = 'start';
+    else if (screenId === 'name-screen' || screenId === 'bet-screen') scene = 'name-bet';
+    else if (screenId === 'confirm1-screen' || screenId === 'confirm2-screen' || screenId === 'confirm3-screen' || screenId === 'confirm4-screen') scene = 'confirm';
+    else if (screenId === 'transition-screen') scene = 'transition';
+    else if (screenId === 'thanks-screen') { BGM.stop(); return; }
+    else if (screenId === 'waiting-screen' && currentRoundBets.length >= 1) scene = 'waiting';
+    else if (screenId === 'results-screen') scene = 'results';
+    if (scene) BGM.play(scene);
+}
 
 // ============================================
 // Screen Control
 // ============================================
+function showThanksScreen() {
+    if (thanksScreenTimeoutId) { clearTimeout(thanksScreenTimeoutId); thanksScreenTimeoutId = null; }
+    var thanksBg = document.querySelector('#thanks-screen .thanks-bg');
+    if (thanksBg) {
+        thanksBg.style.animation = 'none';
+        thanksBg.offsetHeight;
+        thanksBg.style.animation = '';
+    }
+    showScreen('thanks-screen');
+    thanksScreenTimeoutId = setTimeout(function() { proceedFromThanks(); }, 5000);
+}
+
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(function(screen) {
         screen.classList.remove('active');
@@ -74,6 +107,7 @@ function showScreen(screenId) {
     } else {
         clearIdleTimer();
     }
+    updateBGMForScreen(screenId);
 }
 
 // ============================================
@@ -141,6 +175,48 @@ function filterNameSuggestions() {
     });
     container.innerHTML = html;
     container.style.display = 'flex';
+}
+
+// ============================================
+// Ranking Popup (SEE YOUR RANKING + QR)
+// ============================================
+var rankingPopupCountdownId = null;
+
+function showRankingPopup() {
+    var popup = document.getElementById('ranking-popup');
+    var qrContainer = document.getElementById('ranking-qr-code');
+    var countdownEl = document.getElementById('ranking-countdown');
+    if (!popup || !countdownEl) return;
+
+    clearIdleTimer();
+    if (rankingPopupCountdownId) { clearInterval(rankingPopupCountdownId); rankingPopupCountdownId = null; }
+
+    var sec = 10;
+    countdownEl.textContent = sec;
+    popup.classList.add('active');
+
+    rankingPopupCountdownId = setInterval(function() {
+        sec--;
+        countdownEl.textContent = sec;
+        if (sec <= 0) {
+            clearInterval(rankingPopupCountdownId);
+            rankingPopupCountdownId = null;
+            closeRankingPopup();
+        }
+    }, 1000);
+}
+
+function closeRankingPopup(ev) {
+    if (ev && ev.target !== ev.currentTarget) return;
+    var popup = document.getElementById('ranking-popup');
+    if (!popup) return;
+    if (rankingPopupCountdownId) {
+        clearInterval(rankingPopupCountdownId);
+        rankingPopupCountdownId = null;
+    }
+    popup.classList.remove('active');
+    var activeScreen = document.querySelector('.screen.active');
+    if (activeScreen && activeScreen.id !== 'start-screen') resetIdleTimer();
 }
 
 // ============================================
@@ -217,33 +293,30 @@ function selectElevator(elevatorNumber) {
     }
 
     gameState.confirmStep = 0;
-    setTimeout(function() { showScreen('confirm1-screen'); }, 300);
+    var confirmScreen = 'confirm' + elevatorNumber + '-screen';
+    var target = document.getElementById(confirmScreen);
+    if (target) target.classList.add('confirm-entering');
+    showScreen(confirmScreen);
+    setTimeout(function() {
+        if (target) target.classList.remove('confirm-entering');
+    }, 450);
 }
 
 function confirmStep(step) {
     if (isConfirming) return;
-    console.log('Confirm step:', step);
-
-    if (step === 1) {
-        showScreen('confirm2-screen');
-    } else if (step === 2) {
-        showScreen('confirm3-screen');
-    } else if (step === 3) {
-        isConfirming = true;
-        submitBetToFirebase();
-    }
+    console.log('Confirm elevator:', step);
+    isConfirming = true;
+    submitBetToFirebase();
 }
 
 function goBack(fromScreen) {
-    if (fromScreen === 'bet') {
+    if (fromScreen === 'name') {
+        showScreen('start-screen');
+    } else if (fromScreen === 'bet') {
         showScreen('name-screen');
         showNameSuggestions();
-    } else if (fromScreen === 'confirm1') {
+    } else if (fromScreen === 'confirm1' || fromScreen === 'confirm2' || fromScreen === 'confirm3' || fromScreen === 'confirm4') {
         showScreen('bet-screen');
-    } else if (fromScreen === 'confirm2') {
-        showScreen('confirm1-screen');
-    } else if (fromScreen === 'confirm3') {
-        showScreen('confirm2-screen');
     }
 }
 
@@ -252,7 +325,10 @@ function goBack(fromScreen) {
 // ============================================
 
 async function submitBetToFirebase() {
-    showScreen('thanks-screen');
+    // Show transition screen with chosen elevator image
+    var img = document.getElementById('transition-elevator-img');
+    if (img) img.src = 'images/transition-' + gameState.userChoice + '.png';
+    showScreen('transition-screen');
 
     var newBet = {
         playerName: gameState.playerName,
@@ -280,6 +356,8 @@ async function submitBetToFirebase() {
             }
             console.log('Bet added to round:', newBet.playerName, '-> E' + newBet.userChoice);
             startListeningForResults();
+            // After transition animation, show thanks screen with entrance effect
+            setTimeout(function() { showThanksScreen(); }, 1800);
         } catch (error) {
             console.warn('Firebase submit failed, using random fallback:', error.message);
             fallbackRandom();
@@ -290,26 +368,51 @@ async function submitBetToFirebase() {
         return;
     }
 
-    // After 3 seconds, go to waiting screen
-    setTimeout(function() {
-        isConfirming = false;
-        gameState.playerName = '';
-        gameState.userChoice = null;
-        gameState.confirmStep = 0;
-        var nameInput = document.getElementById('player-name');
-        if (nameInput) nameInput.value = '';
-        document.querySelectorAll('.elevator-door').forEach(function(door) {
-            door.classList.remove('selected');
-        });
+    // Thanks screen: wait for click to continue (no auto timeout)
+}
 
-        // Go to waiting screen if not already resolved
-        var activeScreen = document.querySelector('.screen.active');
-        if (activeScreen && activeScreen.id !== 'results-screen') {
-            showScreen('waiting-screen');
-            updateWaitingCount();
+function proceedFromThanks() {
+    var activeScreen = document.querySelector('.screen.active');
+    if (activeScreen && activeScreen.id !== 'thanks-screen') return;
+
+    if (thanksScreenTimeoutId) { clearTimeout(thanksScreenTimeoutId); thanksScreenTimeoutId = null; }
+    isConfirming = false;
+    gameState.playerName = '';
+    gameState.userChoice = null;
+    gameState.confirmStep = 0;
+    var nameInput = document.getElementById('player-name');
+    if (nameInput) nameInput.value = '';
+    document.querySelectorAll('.elevator-door').forEach(function(door) {
+        door.classList.remove('selected');
+    });
+
+    var active = document.querySelector('.screen.active');
+    if (active && active.id !== 'results-screen') {
+        var thanksEl = document.getElementById('thanks-screen');
+        var waitingEl = document.getElementById('waiting-screen');
+        updateWaitingCount();
+        if (thanksEl) thanksEl.classList.add('thanks-exiting');
+        if (waitingEl) {
+            waitingEl.classList.add('active', 'waiting-entering');
+            waitingEl.style.zIndex = '11';
         }
-        console.log('On waiting screen - ready for more players');
-    }, 3000);
+        if (thanksEl) thanksEl.style.zIndex = '12';
+        clearIdleTimer();
+        updateBGMForScreen('waiting-screen');
+        setTimeout(function() {
+            if (thanksEl) {
+                thanksEl.classList.remove('active', 'thanks-exiting');
+                thanksEl.style.zIndex = '';
+            }
+            if (waitingEl) {
+                waitingEl.style.zIndex = '';
+                setTimeout(function() {
+                    if (waitingEl) waitingEl.classList.remove('waiting-entering');
+                }, 50);
+            }
+        }, 450);
+    }
+    console.log('On waiting screen - ready for more players');
 }
 
 function updateWaitingCount() {
@@ -353,13 +456,6 @@ function startListeningForResults() {
         var activeScreen = document.querySelector('.screen.active');
         if (activeScreen && activeScreen.id === 'waiting-screen') {
             updateWaitingCount();
-        }
-
-        // Update idle-betting overlay count if visible
-        var idleBetCount = document.getElementById('idle-betting-count');
-        if (idleBetCount) {
-            var n = currentRoundBets.length;
-            idleBetCount.textContent = n + (n === 1 ? ' PLAYER' : ' PLAYERS') + ' WAITING';
         }
 
         if (data.status === 'resolved' && data.actualElevator) {
@@ -562,6 +658,7 @@ function resetGame() {
 // Idle Timer System
 // ============================================
 function resetIdleTimer() {
+    if (!IDLE_TIMEOUT_ENABLED) return;
     clearIdleTimer();
     idleTimerId = setTimeout(function() { handleIdleTimeout(); }, IDLE_TIMEOUT);
 }
@@ -569,10 +666,18 @@ function resetIdleTimer() {
 function clearIdleTimer() {
     if (idleTimerId) { clearTimeout(idleTimerId); idleTimerId = null; }
     if (idleCountdownId) { clearInterval(idleCountdownId); idleCountdownId = null; }
+    if (idleBettingCountdownId) { clearInterval(idleBettingCountdownId); idleBettingCountdownId = null; }
+}
+
+function isRankingPopupVisible() {
+    var p = document.getElementById('ranking-popup');
+    return p && p.classList.contains('active');
 }
 
 function handleIdleTimeout() {
-    // Check if there are active bets in Firebase
+    if (isRankingPopupVisible()) return;
+    var activeScreen = document.querySelector('.screen.active');
+    if (activeScreen && activeScreen.id === 'start-screen') return;
     if (currentRoundStatus === 'betting' && currentRoundBets.length > 0) {
         showIdleBettingOverlay();
     } else {
@@ -583,12 +688,15 @@ function handleIdleTimeout() {
 // Original idle overlay: no active bets, countdown to reset
 function showIdleOverlay() {
     idleActive = true;
+    var activeScreen = document.querySelector('.screen.active');
+    lastScreenBeforeIdle = activeScreen ? activeScreen.id : 'start-screen';
     idleCountdownValue = 5;
     var overlay = document.getElementById('idle-overlay');
     var countdownEl = document.getElementById('idle-countdown');
     if (!overlay || !countdownEl) return;
     countdownEl.textContent = idleCountdownValue;
     overlay.classList.add('active');
+    if (typeof BGM !== 'undefined') BGM.startIdleFade();
     idleCountdownId = setInterval(function() {
         idleCountdownValue--;
         countdownEl.textContent = idleCountdownValue;
@@ -597,6 +705,7 @@ function showIdleOverlay() {
             idleCountdownId = null;
             overlay.classList.remove('active');
             idleActive = false;
+            if (typeof BGM !== 'undefined') BGM.endIdleFade();
             resetGame();
         }
     }, 1000);
@@ -608,46 +717,75 @@ function dismissIdle() {
         if (overlay) overlay.classList.remove('active');
         return;
     }
+    if (typeof BGM !== 'undefined') BGM.endIdleFade();
     clearIdleTimer();
     idleActive = false;
     var overlay = document.getElementById('idle-overlay');
     if (overlay) overlay.classList.remove('active');
+    var targetScreen = lastScreenBeforeIdle || 'start-screen';
+    showScreen(targetScreen);
+    if (targetScreen === 'waiting-screen') updateWaitingCount();
     resetIdleTimer();
 }
 
-// Betting-active idle overlay: bets exist, show "BET IN PROGRESS" + tap to join
+// Betting-active idle overlay: same as no-bets (bg + countdown), 5s then waiting
 function showIdleBettingOverlay() {
+    if (idleBettingCountdownId) { clearInterval(idleBettingCountdownId); idleBettingCountdownId = null; }
+    var activeScreen = document.querySelector('.screen.active');
+    lastScreenBeforeIdle = activeScreen ? activeScreen.id : 'start-screen';
     var overlay = document.getElementById('idle-betting-overlay');
-    if (!overlay) return;
+    var countdownEl = document.getElementById('idle-betting-countdown');
+    if (!overlay || !countdownEl) return;
 
-    // Update the count
-    var countEl = document.getElementById('idle-betting-count');
-    if (countEl) {
-        var n = currentRoundBets.length;
-        countEl.textContent = n + (n === 1 ? ' PLAYER' : ' PLAYERS') + ' WAITING';
-    }
-
+    var count = 5;
+    countdownEl.textContent = count;
     overlay.classList.add('active');
+    if (typeof BGM !== 'undefined') BGM.startIdleFade();
+
+    idleBettingCountdownId = setInterval(function() {
+        count--;
+        countdownEl.textContent = count;
+        if (count <= 0) {
+            clearInterval(idleBettingCountdownId);
+            idleBettingCountdownId = null;
+            overlay.classList.remove('active');
+            if (typeof BGM !== 'undefined') BGM.endIdleFade();
+            if (currentRoundBets.length > 0) {
+                showScreen('waiting-screen');
+                updateWaitingCount();
+            } else {
+                resetGame();
+            }
+        }
+    }, 1000);
 }
 
 function dismissIdleBetting() {
     var overlay = document.getElementById('idle-betting-overlay');
     if (!overlay) return;
+    if (idleBettingCountdownId) {
+        clearInterval(idleBettingCountdownId);
+        idleBettingCountdownId = null;
+    }
     if (overlay.classList.contains('active')) {
+        if (typeof BGM !== 'undefined') BGM.endIdleFade();
         overlay.classList.remove('active');
-        // Go to waiting screen where they can tap JOIN BET
-        showScreen('waiting-screen');
-        updateWaitingCount();
+        var targetScreen = (currentRoundBets.length > 0) ? 'waiting-screen' : (lastScreenBeforeIdle || 'start-screen');
+        showScreen(targetScreen);
+        if (targetScreen === 'waiting-screen') updateWaitingCount();
+        resetIdleTimer();
     }
 }
 
 document.addEventListener('click', function() {
+    if (isRankingPopupVisible()) return;
     if (!idleActive) {
         var s = document.querySelector('.screen.active');
         if (s && IDLE_SCREENS.indexOf(s.id) !== -1) resetIdleTimer();
     }
 });
 document.addEventListener('touchstart', function() {
+    if (isRankingPopupVisible()) return;
     if (!idleActive) {
         var s = document.querySelector('.screen.active');
         if (s && IDLE_SCREENS.indexOf(s.id) !== -1) resetIdleTimer();
@@ -658,6 +796,7 @@ document.addEventListener('touchstart', function() {
 // Keyboard Support
 // ============================================
 document.addEventListener('keydown', function(e) {
+    if (isRankingPopupVisible()) return;
     if (!idleActive) {
         var s = document.querySelector('.screen.active');
         if (s && IDLE_SCREENS.indexOf(s.id) !== -1) resetIdleTimer();
@@ -673,9 +812,10 @@ document.addEventListener('keydown', function(e) {
 // ============================================
 window.addEventListener('load', function() {
     console.log('Elevator Bet Game loaded - Multi-player Firebase Edition');
+    updateBGMForScreen('start-screen');
+    resetIdleTimer();
     if (db) {
         startListeningForResults();
-        // Check initial state to know if bets are active
         db.collection('gameState').doc('current').get().then(function(doc) {
             if (doc.exists) {
                 var data = doc.data();
@@ -684,4 +824,10 @@ window.addEventListener('load', function() {
             }
         }).catch(function() {});
     }
+    function unlockBGM() {
+        var s = document.querySelector('.screen.active');
+        if (s) updateBGMForScreen(s.id);
+    }
+    document.addEventListener('click', unlockBGM, { once: true });
+    document.addEventListener('touchstart', unlockBGM, { once: true });
 });
