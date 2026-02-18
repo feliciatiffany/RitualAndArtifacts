@@ -154,7 +154,6 @@
         <div class="thanks-bg" onclick="proceedFromThanks()">
             <!-- Merged background (red + starburst + text in one image) -->
             <div class="thanks-img-layer"></div>
-            <p class="thanks-subtitle">Please wait for results</p>
             <!-- Surrounding stars (not in bg image) - with dynamic effects -->
             <svg class="thanks-star thanks-star-1" viewBox="0 0 24 24"><polygon points="12,2 14,9 22,9 16,14 18,22 12,17 6,22 8,14 2,9 10,9"/></svg>
             <svg class="thanks-star thanks-star-2" viewBox="0 0 24 24"><polygon points="12,2 14,9 22,9 16,14 18,22 12,17 6,22 8,14 2,9 10,9"/></svg>
@@ -185,14 +184,9 @@
     <!-- ==================== SCREEN 8: RESULTS ==================== -->
     <div id="results-screen" class="screen">
         <div class="results-bg">
-            <svg class="starburst" viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg">
-                <polygon class="star-outer" points="400,0 430,160 520,20 450,170 620,60 470,190 700,130 490,210 750,230 500,240 720,340 490,270 650,420 460,300 540,470 430,320 400,480 370,320 260,470 340,300 150,420 310,270 80,340 300,240 50,230 310,210 100,130 330,190 180,60 350,170 280,20 370,160"/>
-                <polygon class="star-inner" points="400,80 420,190 480,100 440,200 560,140 450,220 630,200 460,240 620,310 450,265 560,390 435,290 490,440 420,310 400,450 380,310 310,440 365,290 240,390 350,265 180,310 340,240 170,200 350,220 240,140 360,200 320,100 380,190"/>
-            </svg>
             <div class="results-overlay">
                 <h1 class="comic-title results-title">RESULTS!</h1>
                 <div id="results-content" class="results-content-area"></div>
-                <div id="qr-code" class="qr-area results-qr"></div>
             </div>
             <button class="see-more-btn results-reset-btn" onclick="resetGame()">PLAY AGAIN &rsaquo;&rsaquo;&rsaquo;</button>
         </div>

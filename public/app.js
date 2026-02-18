@@ -490,7 +490,7 @@ function autoResetAfterResult() {
     resetTimeoutId = setTimeout(function() {
         resetTimeoutId = null;
         resetGameToIdle();
-    }, 10000);
+    }, 20000);
 }
 
 async function resetGameToIdle() {
