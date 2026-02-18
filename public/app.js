@@ -311,7 +311,12 @@ function confirmStep(step) {
 
 function goBack(fromScreen) {
     if (fromScreen === 'name') {
-        showScreen('start-screen');
+        if (currentRoundBets.length > 0) {
+            showScreen('waiting-screen');
+            updateWaitingCount();
+        } else {
+            showScreen('start-screen');
+        }
     } else if (fromScreen === 'bet') {
         showScreen('name-screen');
         showNameSuggestions();
@@ -421,6 +426,8 @@ function updateWaitingCount() {
         var n = currentRoundBets.length;
         countEl.textContent = n + (n === 1 ? ' PLAYER' : ' PLAYERS') + ' BETTING';
     }
+    var backBtn = document.getElementById('waiting-back-btn');
+    if (backBtn) backBtn.style.display = (currentRoundBets.length === 0) ? 'block' : 'none';
 }
 
 function fallbackRandom() {
@@ -771,7 +778,7 @@ function dismissIdleBetting() {
     if (overlay.classList.contains('active')) {
         if (typeof BGM !== 'undefined') BGM.endIdleFade();
         overlay.classList.remove('active');
-        var targetScreen = (currentRoundBets.length > 0) ? 'waiting-screen' : (lastScreenBeforeIdle || 'start-screen');
+        var targetScreen = lastScreenBeforeIdle || 'start-screen';
         showScreen(targetScreen);
         if (targetScreen === 'waiting-screen') updateWaitingCount();
         resetIdleTimer();
