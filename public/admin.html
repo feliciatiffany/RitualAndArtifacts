@@ -158,6 +158,7 @@
         .result-win { background: rgba(42,157,143,0.3); color: #2a9d8f; }
         .result-lose { background: rgba(230,57,70,0.3); color: #e63946; }
         .bt-not-supported { background: rgba(230,57,70,0.15); border: 1px solid #e63946; border-radius: 8px; padding: 12px; color: #e63946; font-size: 14px; text-align: center; letter-spacing: 1px; margin-bottom: 15px; }
+        .sensor-guide { background: rgba(42,157,143,0.15); border: 1px solid #2a9d8f; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #4cc9f0; letter-spacing: 0.5px; margin-bottom: 15px; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -199,6 +200,10 @@
     <div id="sensor-panel" class="sensor-panel">
         <div id="bt-not-supported" class="bt-not-supported" style="display:none;">
             WEB BLUETOOTH NOT SUPPORTED IN THIS BROWSER.<br>USE CHROME ON ANDROID/MAC/WINDOWS.
+        </div>
+
+        <div class="sensor-guide">
+            <strong>📡 连接说明：</strong> 设备名 ElevSensor-E1 / E2 / E3 / E4，点击 CONNECT 后从列表选择对应传感器。亮度 ≥ 阈值且游戏处于 BETTING 时自动触发。
         </div>
 
         <div class="section-title">BRIGHTNESS THRESHOLD</div>
@@ -257,7 +262,7 @@
         </div>
 
         <div class="sensor-log" id="sensor-log">
-            <div class="log-line log-warn">[SYSTEM] SENSOR MODE READY. CONNECT DEVICES TO BEGIN.</div>
+            <div class="log-line log-warn">[SYSTEM] 传感器模式就绪。UUID: 19b10000-... / 19b10001-... | 数据: uint16 小端序 0-1023 | 5Hz</div>
         </div>
     </div>
 
@@ -302,17 +307,16 @@
         var currentMode = 'manual';
 
         // ============================================
-        // Sensor State
+        // Sensor State - BLE 配置 (与 ESP32 传感器完全匹配)
         // ============================================
-        // ---- BLE CONFIG (to be updated by sensor AI) ----
-        // The sensor device should advertise a BLE service with:
-        //   SERVICE_UUID: the primary service UUID
-        //   CHARACTERISTIC_UUID: a characteristic that sends brightness as a uint16 (0-1023)
-        // The characteristic should support notifications (notify/indicate).
-        // Each sensor is a separate BLE peripheral.
+        // Service UUID:    19b10000-e8f2-537e-4f6c-d104768a1214
+        // Characteristic:  19b10001-e8f2-537e-4f6c-d104768a1214
+        // 设备命名: ElevSensor-E1, ElevSensor-E2, ElevSensor-E3, ElevSensor-E4
+        // 数据格式: uint16 小端序, 0-1023, 5Hz (200ms)
         var BLE_CONFIG = {
             SERVICE_UUID:        '19b10000-e8f2-537e-4f6c-d104768a1214',
-            CHARACTERISTIC_UUID: '19b10001-e8f2-537e-4f6c-d104768a1214'
+            CHARACTERISTIC_UUID: '19b10001-e8f2-537e-4f6c-d104768a1214',
+            DEVICE_NAME_PREFIX:  'ElevSensor'
         };
 
         var sensors = {
@@ -499,14 +503,17 @@
             }
 
             try {
-                sensorLog('Scanning for E' + elevNum + ' sensor...', 'warn');
+                sensorLog('Scanning for E' + elevNum + ' (select ElevSensor-E' + elevNum + ')...', 'warn');
 
                 var device = await navigator.bluetooth.requestDevice({
-                    filters: [{ services: [BLE_CONFIG.SERVICE_UUID] }],
+                    filters: [{
+                        namePrefix: BLE_CONFIG.DEVICE_NAME_PREFIX,
+                        services: [BLE_CONFIG.SERVICE_UUID]
+                    }],
                     optionalServices: [BLE_CONFIG.SERVICE_UUID]
                 });
 
-                sensorLog('Connecting to: ' + device.name + '...');
+                sensorLog('Connecting to: ' + (device.name || 'BLE DEVICE') + '...');
                 var server = await device.gatt.connect();
                 var service = await server.getPrimaryService(BLE_CONFIG.SERVICE_UUID);
                 var characteristic = await service.getCharacteristic(BLE_CONFIG.CHARACTERISTIC_UUID);
@@ -524,11 +531,25 @@
                 sensor.characteristic = characteristic;
                 sensor.connected = true;
 
-                updateSensorUI(elevNum, 'connected', device.name || 'BLE DEVICE');
-                sensorLog('E' + elevNum + ' sensor connected: ' + (device.name || 'DEVICE'), 'trigger');
+                var devName = device.name || 'BLE DEVICE';
+                updateSensorUI(elevNum, 'connected', devName);
+
+                var expectedSuffix = 'E' + elevNum;
+                if (devName.toUpperCase().indexOf(expectedSuffix) === -1) {
+                    sensorLog('⚠ E' + elevNum + ' slot connected to ' + devName + ' - 请确认是否为 E' + elevNum + ' 传感器', 'warn');
+                } else {
+                    sensorLog('✅ E' + elevNum + ' connected: ' + devName + ' | uint16 LE, 0-1023', 'trigger');
+                }
 
             } catch (err) {
-                sensorLog('E' + elevNum + ' connection failed: ' + err.message, 'warn');
+                var msg = err.message || String(err);
+                if (msg.indexOf('cancel') !== -1 || msg.indexOf('User') !== -1) {
+                    sensorLog('E' + elevNum + ' 用户取消扫描', 'warn');
+                } else if (msg.indexOf('NotFound') !== -1 || msg.indexOf('not found') !== -1) {
+                    sensorLog('E' + elevNum + ' 未找到设备，请确认传感器已开机且名称以 ElevSensor 开头', 'warn');
+                } else {
+                    sensorLog('E' + elevNum + ' 连接失败: ' + msg, 'warn');
+                }
             }
         }
 

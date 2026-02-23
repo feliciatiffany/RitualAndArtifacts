@@ -46,8 +46,9 @@ var ELEVATOR_COLORS = {
     4: 'Teal'
 };
 
-var NAMES_KEY = 'elevator_player_names';
 var STORAGE_KEY = 'elevator_bet_history';
+var MAX_PLAYERS = 6;
+var ANIMAL_OPTIONS = ['LION', 'TIGER', 'BEAR', 'WOLF', 'FOX', 'EAGLE'];
 
 // Idle timer variables
 var idleTimerId = null;
@@ -111,70 +112,26 @@ function showScreen(screenId) {
 }
 
 // ============================================
-// Name Suggestions System
+// Animal Selection (6 players max)
 // ============================================
-function getSavedNames() {
-    try {
-        var data = localStorage.getItem(NAMES_KEY);
-        return data ? JSON.parse(data) : [];
-    } catch (e) { return []; }
-}
-
-function savePlayerName(name) {
-    var names = getSavedNames();
-    var upper = name.toUpperCase();
-    var idx = names.indexOf(upper);
-    if (idx !== -1) names.splice(idx, 1);
-    names.unshift(upper);
-    if (names.length > 20) names = names.slice(0, 20);
-    try {
-        localStorage.setItem(NAMES_KEY, JSON.stringify(names));
-    } catch (e) {}
-}
-
-function showNameSuggestions() {
-    var container = document.getElementById('name-suggestions');
+function renderAnimalOptions() {
+    var container = document.getElementById('animal-options');
     if (!container) return;
-    var names = getSavedNames();
-    if (names.length === 0) {
-        container.style.display = 'none';
-        return;
-    }
+    var taken = currentRoundBets.map(function(b) { return b.playerName.toUpperCase(); });
     var html = '';
-    names.slice(0, 8).forEach(function(n) {
-        html += '<button class="name-suggestion-btn" onclick="pickName(\'' + n.replace(/'/g, "\\'") + '\')">' + n + '</button>';
+    ANIMAL_OPTIONS.forEach(function(animal) {
+        var isTaken = taken.indexOf(animal) !== -1;
+        var cls = 'animal-btn' + (isTaken ? ' taken' : '');
+        var onclick = isTaken ? '' : ' onclick="pickAnimal(\'' + animal + '\')"';
+        html += '<button class="' + cls + '"' + onclick + '>' + animal + '</button>';
     });
     container.innerHTML = html;
-    container.style.display = 'flex';
 }
 
-function pickName(name) {
-    var input = document.getElementById('player-name');
-    if (input) input.value = name;
-    filterNameSuggestions();
-}
-
-function filterNameSuggestions() {
-    var input = document.getElementById('player-name');
-    var container = document.getElementById('name-suggestions');
-    if (!input || !container) return;
-    var val = input.value.trim().toUpperCase();
-    var names = getSavedNames();
-    if (names.length === 0 || val.length === 0) {
-        showNameSuggestions();
-        return;
-    }
-    var filtered = names.filter(function(n) { return n.indexOf(val) !== -1; });
-    if (filtered.length === 0) {
-        container.style.display = 'none';
-        return;
-    }
-    var html = '';
-    filtered.slice(0, 6).forEach(function(n) {
-        html += '<button class="name-suggestion-btn" onclick="pickName(\'' + n.replace(/'/g, "\\'") + '\')">' + n + '</button>';
-    });
-    container.innerHTML = html;
-    container.style.display = 'flex';
+function pickAnimal(animal) {
+    gameState.playerName = animal;
+    console.log('Player animal:', animal);
+    showScreen('bet-screen');
 }
 
 // ============================================
@@ -184,12 +141,17 @@ var rankingPopupCountdownId = null;
 
 function showRankingPopup() {
     var popup = document.getElementById('ranking-popup');
-    var qrContainer = document.getElementById('ranking-qr-code');
+    var qrContainer = document.getElementById('ranking-qr-container');
     var countdownEl = document.getElementById('ranking-countdown');
     if (!popup || !countdownEl) return;
 
     clearIdleTimer();
     if (rankingPopupCountdownId) { clearInterval(rankingPopupCountdownId); rankingPopupCountdownId = null; }
+
+    // Use static QR image (ranking-qr.png points to stats page)
+    if (qrContainer) {
+        qrContainer.innerHTML = '<img src="images/ranking-qr.png" alt="View Stats QR" class="ranking-qr-img">';
+    }
 
     var sec = 10;
     countdownEl.textContent = sec;
@@ -223,49 +185,24 @@ function closeRankingPopup(ev) {
 // Game Flow
 // ============================================
 
+function tryJoinGame() {
+    if (currentRoundBets.length >= MAX_PLAYERS) return;
+    startGame();
+}
+
 function startGame() {
     console.log('Game started');
     dismissIdle();
     dismissIdleBetting();
     hideNameWarning();
 
+    if (currentRoundBets.length >= MAX_PLAYERS) {
+        showNameWarning('ROOM FULL! MAX ' + MAX_PLAYERS + ' PLAYERS.');
+        return;
+    }
+
     showScreen('name-screen');
-    showNameSuggestions();
-    setTimeout(function() {
-        var input = document.getElementById('player-name');
-        if (input) {
-            input.value = '';
-            input.focus();
-        }
-    }, 500);
-}
-
-function submitName() {
-    var nameInput = document.getElementById('player-name');
-    var name = nameInput ? nameInput.value.trim() : '';
-    if (!name) {
-        nameInput.style.animation = 'shake 0.4s ease';
-        setTimeout(function() { nameInput.style.animation = ''; }, 400);
-        return;
-    }
-
-    // Check for duplicate name in current round
-    var upperName = name.toUpperCase();
-    var duplicate = currentRoundBets.some(function(b) {
-        return b.playerName.toUpperCase() === upperName;
-    });
-    if (duplicate) {
-        showNameWarning('THIS PLAYER ALREADY JOINED! TRY A DIFFERENT NAME!');
-        nameInput.style.animation = 'shake 0.4s ease';
-        setTimeout(function() { nameInput.style.animation = ''; }, 400);
-        return;
-    }
-
-    hideNameWarning();
-    gameState.playerName = name;
-    savePlayerName(name);
-    console.log('Player name:', name);
-    showScreen('bet-screen');
+    renderAnimalOptions();
 }
 
 function showNameWarning(msg) {
@@ -319,7 +256,7 @@ function goBack(fromScreen) {
         }
     } else if (fromScreen === 'bet') {
         showScreen('name-screen');
-        showNameSuggestions();
+        renderAnimalOptions();
     } else if (fromScreen === 'confirm1' || fromScreen === 'confirm2' || fromScreen === 'confirm3' || fromScreen === 'confirm4') {
         showScreen('bet-screen');
     }
@@ -330,11 +267,6 @@ function goBack(fromScreen) {
 // ============================================
 
 async function submitBetToFirebase() {
-    // Show transition screen with chosen elevator image
-    var img = document.getElementById('transition-elevator-img');
-    if (img) img.src = 'images/transition-' + gameState.userChoice + '.png';
-    showScreen('transition-screen');
-
     var newBet = {
         playerName: gameState.playerName,
         userChoice: gameState.userChoice
@@ -346,11 +278,28 @@ async function submitBetToFirebase() {
             var doc = await docRef.get();
 
             if (doc.exists && doc.data().status === 'betting') {
+                var existingBets = doc.data().bets || [];
+                if (existingBets.length >= MAX_PLAYERS) {
+                    console.warn('Room full, bet rejected');
+                    isConfirming = false;
+                    showScreen('name-screen');
+                    renderAnimalOptions();
+                    showNameWarning('ROOM FULL! MAX ' + MAX_PLAYERS + ' PLAYERS.');
+                    return;
+                }
+            }
+
+            // Show transition screen with chosen elevator image
+            var img = document.getElementById('transition-elevator-img');
+            if (img) img.src = 'images/transition-' + gameState.userChoice + '.png';
+            showScreen('transition-screen');
+
+            if (doc.exists && doc.data().status === 'betting') {
                 await docRef.update({
                     bets: firebase.firestore.FieldValue.arrayUnion(newBet),
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
-            } else {
+            } else if (!doc.exists || doc.data().status !== 'betting') {
                 await docRef.set({
                     status: 'betting',
                     bets: [newBet],
@@ -385,8 +334,6 @@ function proceedFromThanks() {
     gameState.playerName = '';
     gameState.userChoice = null;
     gameState.confirmStep = 0;
-    var nameInput = document.getElementById('player-name');
-    if (nameInput) nameInput.value = '';
     document.querySelectorAll('.elevator-door').forEach(function(door) {
         door.classList.remove('selected');
     });
@@ -428,6 +375,16 @@ function updateWaitingCount() {
     }
     var backBtn = document.getElementById('waiting-back-btn');
     if (backBtn) backBtn.style.display = (currentRoundBets.length === 0) ? 'block' : 'none';
+    var joinBtn = document.getElementById('join-bet-btn');
+    if (joinBtn) {
+        if (currentRoundBets.length >= MAX_PLAYERS) {
+            joinBtn.textContent = 'ROOM FULL';
+            joinBtn.classList.add('room-full');
+        } else {
+            joinBtn.textContent = 'JOIN BET?';
+            joinBtn.classList.remove('room-full');
+        }
+    }
 }
 
 function fallbackRandom() {
@@ -651,8 +608,6 @@ function resetGame() {
         confirmStep: 0
     };
 
-    var nameInput = document.getElementById('player-name');
-    if (nameInput) nameInput.value = '';
     document.querySelectorAll('.elevator-door').forEach(function(door) {
         door.classList.remove('selected');
     });
@@ -808,10 +763,6 @@ document.addEventListener('keydown', function(e) {
     if (!idleActive) {
         var s = document.querySelector('.screen.active');
         if (s && IDLE_SCREENS.indexOf(s.id) !== -1) resetIdleTimer();
-    }
-    if (e.key === 'Enter') {
-        var nameScreen = document.getElementById('name-screen');
-        if (nameScreen && nameScreen.classList.contains('active')) submitName();
     }
 });
 

@@ -16,7 +16,7 @@
         <div class="start-bg">
             <button class="ranking-link" onclick="event.stopPropagation(); showRankingPopup();">RANKING</button>
             <div class="start-text">
-                <p class="comic-subtitle start-subtitle">CLICK TO CONTINUE!</p>
+                <p class="comic-subtitle start-subtitle">Guess which elevator will come first</p>
             </div>
         </div>
     </div>
@@ -24,21 +24,20 @@
     <!-- ==================== RANKING POPUP (QR + countdown only) ==================== -->
     <div id="ranking-popup" class="ranking-popup" onclick="closeRankingPopup(event)">
         <div class="ranking-popup-inner" onclick="event.stopPropagation()">
-            <img src="images/ranking-qr.png" alt="" class="ranking-popup-img">
+            <div id="ranking-qr-container" class="ranking-popup-img"></div>
             <div class="ranking-popup-countdown" id="ranking-countdown">10</div>
         </div>
     </div>
 
-    <!-- ==================== SCREEN 2: ASK NAME ==================== -->
+    <!-- ==================== SCREEN 2: CHOOSE ANIMAL ==================== -->
     <div id="name-screen" class="screen">
         <div class="name-bg">
             <button class="back-btn name-back-btn" onclick="goBack('name')">&lsaquo;&lsaquo;&lsaquo; BACK</button>
             <div class="name-content">
-                <input type="text" id="player-name" class="name-input" placeholder="Enter your name" maxlength="20" oninput="filterNameSuggestions(); hideNameWarning();" autocomplete="off">
+                <p class="name-prompt">CHOOSE YOUR ANIMAL</p>
+                <div id="animal-options" class="animal-options"></div>
                 <div id="name-warning" class="name-warning" style="display:none;"></div>
-                <div id="name-suggestions" class="name-suggestions" style="display:none;"></div>
             </div>
-            <button class="next-btn" onclick="submitName()">NEXT &rsaquo;&rsaquo;&rsaquo;</button>
         </div>
     </div>
 
@@ -176,7 +175,7 @@
                 <div class="waiting-count-wrap">
                     <p class="waiting-count" id="waiting-count">1 PLAYER BETTING</p>
                 </div>
-                <button class="join-btn" onclick="startGame()">JOIN BET?</button>
+                <button id="join-bet-btn" class="join-btn" onclick="tryJoinGame()">JOIN BET?</button>
             </div>
         </div>
     </div>
@@ -187,6 +186,7 @@
             <div class="results-overlay">
                 <h1 class="comic-title results-title">RESULTS!</h1>
                 <div id="results-content" class="results-content-area"></div>
+                <div id="qr-code" class="results-qr-code"></div>
             </div>
             <button class="see-more-btn results-reset-btn" onclick="resetGame()">PLAY AGAIN &rsaquo;&rsaquo;&rsaquo;</button>
         </div>
